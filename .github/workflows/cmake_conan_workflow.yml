@@ -1,0 +1,58 @@
+name: Build & Push cmake_conan container
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cmake_conan/**"
+      - ".github/workflows/cmake_with_conan_workflow.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "cmake_conan/**"
+      - ".github/workflows/cmake_with_conan_workflow.yml"
+  workflow_dispatch:
+
+env:
+  CONAN_VERSION: 2.0.6
+  CMAKE_VERSION: 3.26.4
+  LATEST_VERSION: 12
+
+jobs:
+  build_tag_push_containers:
+    strategy:
+      matrix:
+        gcc_version: [10, 11, 12]
+        repository: ["loiclopez/cmake_conan", "ghcr.io/loic-lopez/cmake_conan"]
+    defaults:
+      run:
+        working-directory: cmake_conan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add prefix to semVer calculated by GitVersion
+        id: prefixed_semver
+        run: echo 'semVer=gcc_${{ matrix.gcc_version }}-cmake_${{ env.CMAKE_VERSION }}-conan_${{ env.CONAN_VERSION }}' >> $GITHUB_OUTPUT
+
+      - name: Build ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }} container
+        run: | 
+          docker build \
+          --build-arg GCC_VERSION=${{ matrix.gcc_version }} \
+          --build-arg CMAKE_VERSION=${{ env.CMAKE_VERSION }} \
+          --build-arg CONAN_VERSION=${{ env.CONAN_VERSION }} \
+          -t ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }} .
+
+      - name: Login to ghcr.io registry
+        if: contains(needs.build.outputs.branchName, 'main') && contains(matrix.repository, 'ghcr.io')
+        run: echo ${{ secrets.PUSH_CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Push ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }} container
+        if: contains(needs.build.outputs.branchName, 'main')
+        run: docker push ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }}
+
+      - name: Push ${{ matrix.repository }}:latest container
+        if: contains(needs.build.outputs.branchName, 'main') && matrix.gcc_version == env.LATEST_VERSION
+        run: |
+          docker tag ${{ matrix.repository }}:latest
+          docker push ${{ matrix.repository }}:latest
