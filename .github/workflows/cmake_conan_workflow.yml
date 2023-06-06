@@ -5,12 +5,12 @@ on:
     branches: [ main ]
     paths:
       - "cmake_conan/**"
-      - ".github/workflows/cmake_with_conan_workflow.yml"
+      - ".github/workflows/cmake_conan_workflow.yml"
   pull_request:
     branches: [ main ]
     paths:
       - "cmake_conan/**"
-      - ".github/workflows/cmake_with_conan_workflow.yml"
+      - ".github/workflows/cmake_conan_workflow.yml"
   workflow_dispatch:
 
 env:
@@ -69,7 +69,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: cmake_conan
-          push: ${{ contains(github.ref, 'main') }}
+          push: ${{ github.ref == 'refs/heads/main' }}
           tags: ${{ steps.compute_tags.outputs.tags }}
           build-args: | 
             GCC_VERSION=${{ matrix.gcc_version }} 
