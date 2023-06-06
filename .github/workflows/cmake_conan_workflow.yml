@@ -44,15 +44,15 @@ jobs:
           -t ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }} .
 
       - name: Login to ghcr.io registry
-        if: contains(needs.build.outputs.branchName, 'main') && contains(matrix.repository, 'ghcr.io')
+        # if: contains(needs.build.outputs.branchName, 'main') && contains(matrix.repository, 'ghcr.io')
         run: echo ${{ secrets.PUSH_CR_PAT }} | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
 
       - name: Push ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }} container
-        if: contains(needs.build.outputs.branchName, 'main')
+        # if: contains(needs.build.outputs.branchName, 'main')
         run: docker push ${{ matrix.repository }}:${{ steps.prefixed_semver.outputs.semVer }}
 
       - name: Push ${{ matrix.repository }}:latest container
-        if: contains(needs.build.outputs.branchName, 'main') && matrix.gcc_version == env.LATEST_VERSION
+        # if: contains(needs.build.outputs.branchName, 'main') && matrix.gcc_version == env.LATEST_VERSION
         run: |
           docker tag ${{ matrix.repository }}:latest
           docker push ${{ matrix.repository }}:latest
